@@ -24,6 +24,8 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { page_status } from "notifications";
 import { Button } from "@patternfly/react-core";
 
+import client from "../../storaged/client";
+
 export class FullStorageWarning extends React.Component {
     constructor() {
         super();
@@ -40,20 +42,37 @@ export class FullStorageWarning extends React.Component {
     }
 
     render() {
-        console.log(page_status);
+        const full_disks = [];
+        for (const key in client.fsys_sizes.data) {
+            const arr = client.fsys_sizes.data[key];
+            const ratio = arr[0] / arr[1];
+            if (ratio > 0.80 && !(key.includes("snap"))) {
+                full_disks.push(key);
+            }
+        }
+        if (full_disks.length > 0) {
+            page_status.set_own({ type: "error", title: "Path is almost full", details: { filesystems: full_disks } });
+        }
         const status = page_status.get("system");
-        if (status)
-            console.log(status);
         return (
-            <li id="page_status_notification_storage_warning" key="storage_warning">
-                {!status && <Button variant="link" isInline component="a" onClick={ () => { page_status.set_own({ type: "error", title: "'path' is almost full" }) } }>Test</Button>}
-                {status &&
-                <Flex flexWrap={{ default: 'nowrap' }} spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    <ExclamationCircleIcon className="ct-exclamation-circle" />
-                    {status.title}
-                </Flex>
-                }
-            </li>
+            <>
+                <li id="page_status_notification_storage_warning" key="storage_warning">
+                    {status &&
+                    <Flex flexWrap={{ default: 'nowrap' }} spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <ExclamationCircleIcon className="ct-exclamation-circle" />
+                        {status.details.filesystems.map((fs) => {
+                            return <div key={fs}>{fs} is almost full</div>;
+                        })}
+                    </Flex>
+                    }
+                </li>
+                <li>
+                    <Flex flexWrap={{ default: 'nowrap' }} spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <Button variant="primary" isInline component="a" onClick={ () => { console.log(page_status.get("system")) } }>Test</Button>
+                        <Button variant="primary" isInline component="a" onClick={ () => { console.log(client.fsys_sizes.data) } }>Test2</Button>
+                    </Flex>
+                </li>
+            </>
         );
     }
 }
